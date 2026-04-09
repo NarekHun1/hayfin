@@ -12,6 +12,8 @@ async function bootstrap() {
       'https://www.hayfin-front.vercel.app',
       process.env.FRONTEND_URL || '',
     ].filter(Boolean),
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
 
