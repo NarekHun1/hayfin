@@ -1,6 +1,11 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 
@@ -38,6 +43,41 @@ export class AuthService {
 
     return {
       message: 'Registration successful',
+      token,
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone,
+      },
+    };
+  }
+
+  async login(dto: LoginDto) {
+    const phone = dto.phone.trim();
+
+    const user = await this.prisma.user.findUnique({
+      where: { phone },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid phone or password');
+    }
+
+    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid phone or password');
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, phone: user.phone },
+      process.env.JWT_SECRET || 'super_secret_key',
+      { expiresIn: '7d' },
+    );
+
+    return {
+      message: 'Login successful',
       token,
       user: {
         id: user.id,
