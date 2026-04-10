@@ -7,12 +7,60 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  USER
+  ADMIN
+  MANAGER
+  CONTENT_MANAGER
+}
+
+enum ApplicationStatus {
+  NEW
+  IN_REVIEW
+  NEEDS_DOCUMENTS
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   firstName String
   lastName  String
   phone     String   @unique
   password  String
+  role      UserRole @default(USER)
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  applications LoanApplication[] @relation("UserApplications")
+  assignedApps LoanApplication[] @relation("AssignedManagerApplications")
+}
+
+model LoanApplication {
+  id             Int               @id @default(autoincrement())
+  userId         Int?
+  fullName       String
+  phone          String
+  amount         Int
+  termMonths     Int?
+  monthlyIncome  Int?
+  workplace      String?
+  loanPurpose    String?
+  hasActiveLoans Boolean?
+  comment        String?
+  managerComment String?
+  status         ApplicationStatus @default(NEW)
+  assignedToId   Int?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  user       User? @relation("UserApplications", fields: [userId], references: [id], onDelete: SetNull)
+  assignedTo User? @relation("AssignedManagerApplications", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([phone])
+  @@index([status])
+  @@index([createdAt])
+  @@index([assignedToId])
 }
