@@ -32,11 +32,18 @@ export class AuthService {
         lastName: dto.lastName.trim(),
         phone,
         password: hashedPassword,
+        role: 'USER',
       },
     });
 
     const token = jwt.sign(
-      { userId: user.id, phone: user.phone },
+      {
+        userId: user.id,
+        phone: user.phone,
+        role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
       process.env.JWT_SECRET || 'super_secret_key',
       { expiresIn: '7d' },
     );
@@ -49,6 +56,8 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         phone: user.phone,
+        role: user.role,
+        isActive: user.isActive,
       },
     };
   }
@@ -64,6 +73,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid phone or password');
     }
 
+    if (!user.isActive) {
+      throw new UnauthorizedException('User is inactive');
+    }
+
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
 
     if (!isPasswordValid) {
@@ -71,7 +84,13 @@ export class AuthService {
     }
 
     const token = jwt.sign(
-      { userId: user.id, phone: user.phone },
+      {
+        userId: user.id,
+        phone: user.phone,
+        role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
       process.env.JWT_SECRET || 'super_secret_key',
       { expiresIn: '7d' },
     );
@@ -84,6 +103,8 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         phone: user.phone,
+        role: user.role,
+        isActive: user.isActive,
       },
     };
   }
