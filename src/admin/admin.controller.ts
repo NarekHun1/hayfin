@@ -3,12 +3,13 @@ import {
   Controller,
   Get,
   Param,
+  ParseBoolPipe,
   ParseIntPipe,
   Patch,
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApplicationStatus } from '@prisma/client';
+import { ApplicationStatus, UserRole } from '@prisma/client';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -52,9 +53,38 @@ export class AdminController {
     return this.adminService.assignApplication(id, managerId);
   }
 
+  @Patch('applications/:id/unassign')
+  unassignApplication(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.unassignApplication(id);
+  }
+
   @Get('users')
   @Roles('ADMIN')
   getUsers() {
     return this.adminService.getUsers();
+  }
+
+  @Get('managers')
+  @Roles('ADMIN')
+  getManagers() {
+    return this.adminService.getManagers();
+  }
+
+  @Patch('users/:id/role/:role')
+  @Roles('ADMIN')
+  updateUserRole(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('role') role: UserRole,
+  ) {
+    return this.adminService.updateUserRole(id, role);
+  }
+
+  @Patch('users/:id/active')
+  @Roles('ADMIN')
+  updateUserActiveStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('value', ParseBoolPipe) value: boolean,
+  ) {
+    return this.adminService.updateUserActiveStatus(id, value);
   }
 }
