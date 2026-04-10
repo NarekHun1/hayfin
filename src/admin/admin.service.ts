@@ -23,6 +23,7 @@ export class AdminService {
       totalUsers,
       activeUsers,
       latestApplications,
+      users,
     ] = await Promise.all([
       this.prisma.loanApplication.count(),
       this.prisma.loanApplication.count({
@@ -87,6 +88,19 @@ export class AdminService {
           },
         },
       }),
+      this.prisma.user.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
     ]);
 
     return {
@@ -100,6 +114,7 @@ export class AdminService {
       totalUsers,
       activeUsers,
       latestApplications,
+      users,
     };
   }
 
@@ -202,10 +217,7 @@ export class AdminService {
     return application;
   }
 
-  async updateApplicationStatus(
-    id: number,
-    dto: UpdateApplicationStatusDto,
-  ) {
+  async updateApplicationStatus(id: number, dto: UpdateApplicationStatusDto) {
     const application = await this.prisma.loanApplication.findUnique({
       where: { id },
     });
