@@ -4,14 +4,15 @@ import {
   IsInt,
   IsNotEmpty,
   IsOptional,
+  IsPhoneNumber,
   IsString,
-  MaxLength,
   Min,
+  MaxLength,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { EmploymentStatus } from '@prisma/client';
 
-export class CreateApplicationDto {
+export class CreateLoanApplicationDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(120)

@@ -18,9 +18,33 @@ enum ApplicationStatus {
   NEW
   IN_REVIEW
   NEEDS_DOCUMENTS
+  PRE_APPROVED
   APPROVED
   REJECTED
   COMPLETED
+}
+
+enum EmploymentStatus {
+  EMPLOYED
+  SELF_EMPLOYED
+  UNEMPLOYED
+  STUDENT
+  RETIRED
+}
+
+enum CreditHistoryStatus {
+  CLEAN
+  HAD_DELAYS
+  ACTIVE_OVERDUE
+  BLACKLISTED
+}
+
+enum ProbabilityLevel {
+  VERY_LOW
+  LOW
+  MEDIUM
+  HIGH
+  VERY_HIGH
 }
 
 model User {
@@ -39,22 +63,41 @@ model User {
 }
 
 model LoanApplication {
-  id             Int               @id @default(autoincrement())
-  userId         Int?
-  fullName       String
-  phone          String
-  amount         Int
-  termMonths     Int?
-  monthlyIncome  Int?
-  workplace      String?
-  loanPurpose    String?
-  hasActiveLoans Boolean?
+  id       Int    @id @default(autoincrement())
+  userId   Int?
+  fullName String
+  phone    String
+
+  amount           Int
+  termMonths       Int?
+  monthlyIncome    Int?
+  workplace        String?
+  employmentStatus EmploymentStatus?
+  jobYears         Int?
+  loanPurpose      String?
+
+  hasActiveLoans       Boolean?
+  activeLoanMonthlyPay Int?
+  hasOverdueNow        Boolean?
+  wasBlacklistedBefore Boolean?
+  isBlacklistedNow     Boolean?
+  hadDelaysBefore      Boolean?
+  monthsSinceLastDelay Int?
+  creditHistoryStatus  CreditHistoryStatus?
+
   comment        String?
   managerComment String?
   status         ApplicationStatus @default(NEW)
   assignedToId   Int?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+
+  scoringPoints       Int?
+  approvalProbability Int?
+  probabilityLevel    ProbabilityLevel?
+  riskNotes           String?
+  autoDecision        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user       User? @relation("UserApplications", fields: [userId], references: [id], onDelete: SetNull)
   assignedTo User? @relation("AssignedManagerApplications", fields: [assignedToId], references: [id], onDelete: SetNull)
@@ -63,4 +106,6 @@ model LoanApplication {
   @@index([status])
   @@index([createdAt])
   @@index([assignedToId])
+  @@index([approvalProbability])
+  @@index([probabilityLevel])
 }
