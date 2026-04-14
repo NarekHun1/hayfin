@@ -20,6 +20,9 @@ export class SmsService {
 
       const normalizedPhone = this.normalizePhone(to);
 
+      console.log('RAW PHONE =', to);
+      console.log('NORMALIZED PHONE =', normalizedPhone);
+
       const message = await this.client.messages.create({
         to: normalizedPhone,
         body,
@@ -44,7 +47,6 @@ export class SmsService {
       );
     }
   }
-
   private normalizePhone(phone: string) {
     const cleaned = phone.replace(/[^\d+]/g, '');
 
