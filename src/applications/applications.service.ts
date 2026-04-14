@@ -1,18 +1,53 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { ScoringService } from '../loan-application/scoring.service';
 import { UpdateApplicationStatusDto } from './dto/update-application-status.dto';
 import { AssignManagerDto } from './dto/assign-manager.dto';
 import { UpdateManagerCommentDto } from './dto/update-manager-comment.dto';
+import { SmsService } from '../sms/sms.service';
 
 @Injectable()
 export class ApplicationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly scoringService: ScoringService,
+    private readonly smsService: SmsService,
   ) {}
+  async sendSmsToApplication(id: number, text: string, adminId?: number) {
+    const application = await this.prisma.loanApplication.findUnique({
+      where: { id },
+      include: {
+        user: true,
+        assignedTo: true,
+      },
+    });
 
+    if (!application) {
+      throw new NotFoundException('Application not found');
+    }
+
+    if (!application.phone?.trim()) {
+      throw new BadRequestException('Application phone not found');
+    }
+
+    const result = await this.smsService.sendSms(
+      application.phone,
+      text.trim(),
+    );
+
+    return {
+      success: true,
+      applicationId: application.id,
+      phone: application.phone,
+      sms: result,
+      sentByAdminId: adminId ?? null,
+    };
+  }
   async create(dto: CreateApplicationDto, userId?: number) {
     const scoring = this.scoringService.calculate(dto);
 
@@ -176,10 +211,7 @@ export class ApplicationsService {
           in: ['ADMIN', 'MANAGER'],
         },
       },
-      orderBy: [
-        { role: 'asc' },
-        { firstName: 'asc' },
-      ],
+      orderBy: [{ role: 'asc' }, { firstName: 'asc' }],
       select: {
         id: true,
         firstName: true,
