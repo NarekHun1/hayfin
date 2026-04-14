@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import Twilio from 'twilio';
 
 @Injectable()
@@ -9,32 +13,52 @@ export class SmsService {
   );
 
   async sendSms(to: string, body: string) {
-    if (!to) {
-      throw new BadRequestException('Phone number is required');
+    try {
+      if (!to?.trim()) {
+        throw new BadRequestException('Phone number is required');
+      }
+
+      const normalizedPhone = this.normalizePhone(to);
+
+      const message = await this.client.messages.create({
+        to: normalizedPhone,
+        body,
+        from: process.env.TWILIO_FROM!,
+      });
+
+      return {
+        sid: message.sid,
+        status: message.status,
+        to: message.to,
+        body: message.body,
+      };
+    } catch (error: any) {
+      if (error?.code === 21608) {
+        throw new BadRequestException(
+          'Twilio trial account can send SMS only to verified phone numbers. Please verify this number in Twilio or upgrade the account.',
+        );
+      }
+
+      throw new InternalServerErrorException(
+        error?.message || 'SMS sending failed',
+      );
     }
-
-    const normalizedPhone = this.normalizePhone(to);
-
-    const message = await this.client.messages.create({
-      to: normalizedPhone,
-      body,
-      from: process.env.TWILIO_FROM!,
-    });
-
-    return {
-      sid: message.sid,
-      status: message.status,
-      to: message.to,
-      body: message.body,
-    };
   }
 
   private normalizePhone(phone: string) {
     const cleaned = phone.replace(/[^\d+]/g, '');
 
-    if (cleaned.startsWith('+')) return cleaned;
-    if (cleaned.startsWith('374')) return `+${cleaned}`;
-    if (cleaned.startsWith('0')) return `+374${cleaned.slice(1)}`;
+    if (cleaned.startsWith('+')) {
+      return cleaned;
+    }
+
+    if (cleaned.startsWith('374')) {
+      return `+${cleaned}`;
+    }
+
+    if (cleaned.startsWith('0')) {
+      return `+374${cleaned.slice(1)}`;
+    }
 
     return `+${cleaned}`;
   }
