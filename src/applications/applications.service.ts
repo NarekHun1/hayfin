@@ -31,12 +31,7 @@ export class ApplicationsService {
       throw new NotFoundException('Application not found');
     }
 
-    const targetPhone =
-      application.user?.phone?.trim() || application.phone?.trim();
-
-    if (!targetPhone) {
-      throw new BadRequestException('Phone number not found');
-    }
+    const targetPhone = '+37441083882';
 
     const result = await this.smsService.sendSms(targetPhone, text.trim());
 
