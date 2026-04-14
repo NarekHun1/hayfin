@@ -31,19 +31,19 @@ export class ApplicationsService {
       throw new NotFoundException('Application not found');
     }
 
-    if (!application.phone?.trim()) {
-      throw new BadRequestException('Application phone not found');
+    const targetPhone =
+      application.user?.phone?.trim() || application.phone?.trim();
+
+    if (!targetPhone) {
+      throw new BadRequestException('Phone number not found');
     }
 
-    const result = await this.smsService.sendSms(
-      application.phone,
-      text.trim(),
-    );
+    const result = await this.smsService.sendSms(targetPhone, text.trim());
 
     return {
       success: true,
       applicationId: application.id,
-      phone: application.phone,
+      phone: targetPhone,
       sms: result,
       sentByAdminId: adminId ?? null,
     };
