@@ -20,21 +20,31 @@ export class AuthService {
       where: { phone },
     });
 
-    if (existingUser) {
+    if (existingUser?.password) {
       throw new BadRequestException('User with this phone already exists');
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-    const user = await this.prisma.user.create({
-      data: {
-        firstName: dto.firstName.trim(),
-        lastName: dto.lastName.trim(),
-        phone,
-        password: hashedPassword,
-        role: 'USER',
-      },
-    });
+    const user = existingUser
+      ? await this.prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            firstName: dto.firstName.trim(),
+            lastName: dto.lastName.trim(),
+            password: hashedPassword,
+            isActive: true,
+          },
+        })
+      : await this.prisma.user.create({
+          data: {
+            firstName: dto.firstName.trim(),
+            lastName: dto.lastName.trim(),
+            phone,
+            password: hashedPassword,
+            role: 'USER',
+          },
+        });
 
     const token = jwt.sign(
       {
@@ -69,7 +79,7 @@ export class AuthService {
       where: { phone },
     });
 
-    if (!user) {
+    if (!user?.password) {
       throw new UnauthorizedException('Invalid phone or password');
     }
 

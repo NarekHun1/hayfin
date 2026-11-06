@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { ScoringService } from '../loan-application/scoring.service';
@@ -44,40 +41,63 @@ export class ApplicationsService {
   }
   async create(dto: CreateApplicationDto, userId?: number) {
     const scoring = this.scoringService.calculate(dto);
+    const phone = dto.phone.trim();
 
-    return this.prisma.loanApplication.create({
-      data: {
-        userId,
+    return this.prisma.$transaction(async (tx) => {
+      let applicationUserId = userId;
 
-        fullName: dto.fullName,
-        phone: dto.phone.trim(),
-        amount: dto.amount,
-        termMonths: dto.termMonths,
-        monthlyIncome: dto.monthlyIncome,
-        workplace: dto.workplace,
-        loanPurpose: dto.loanPurpose,
-        hasActiveLoans: dto.hasActiveLoans,
-        comment: dto.comment,
+      if (!applicationUserId) {
+        const [firstName, ...lastNameParts] = dto.fullName.trim().split(/\s+/);
 
-        employmentStatus: dto.employmentStatus,
-        jobYears: dto.jobYears,
-        activeLoanMonthlyPay: dto.activeLoanMonthlyPay,
-        hasOverdueNow: dto.hasOverdueNow,
-        wasBlacklistedBefore: dto.wasBlacklistedBefore,
-        isBlacklistedNow: dto.isBlacklistedNow,
-        hadDelaysBefore: dto.hadDelaysBefore,
-        monthsSinceLastDelay: dto.monthsSinceLastDelay,
+        const user = await tx.user.upsert({
+          where: { phone },
+          update: {},
+          create: {
+            firstName,
+            lastName: lastNameParts.join(' '),
+            phone,
+            password: null,
+            role: 'USER',
+          },
+        });
 
-        scoringPoints: scoring.scoringPoints,
-        approvalProbability: scoring.approvalProbability,
-        probabilityLevel: scoring.probabilityLevel,
-        autoDecision: scoring.autoDecision,
-        riskNotes: scoring.riskNotes,
-      },
-      include: {
-        user: true,
-        assignedTo: true,
-      },
+        applicationUserId = user.id;
+      }
+
+      return tx.loanApplication.create({
+        data: {
+          userId: applicationUserId,
+
+          fullName: dto.fullName,
+          phone,
+          amount: dto.amount,
+          termMonths: dto.termMonths,
+          monthlyIncome: dto.monthlyIncome,
+          workplace: dto.workplace,
+          loanPurpose: dto.loanPurpose,
+          hasActiveLoans: dto.hasActiveLoans,
+          comment: dto.comment,
+
+          employmentStatus: dto.employmentStatus,
+          jobYears: dto.jobYears,
+          activeLoanMonthlyPay: dto.activeLoanMonthlyPay,
+          hasOverdueNow: dto.hasOverdueNow,
+          wasBlacklistedBefore: dto.wasBlacklistedBefore,
+          isBlacklistedNow: dto.isBlacklistedNow,
+          hadDelaysBefore: dto.hadDelaysBefore,
+          monthsSinceLastDelay: dto.monthsSinceLastDelay,
+
+          scoringPoints: scoring.scoringPoints,
+          approvalProbability: scoring.approvalProbability,
+          probabilityLevel: scoring.probabilityLevel,
+          autoDecision: scoring.autoDecision,
+          riskNotes: scoring.riskNotes,
+        },
+        include: {
+          user: true,
+          assignedTo: true,
+        },
+      });
     });
   }
 
